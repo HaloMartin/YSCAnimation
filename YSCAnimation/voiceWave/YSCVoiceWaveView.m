@@ -90,8 +90,9 @@ static NSRunLoop *_voiceWaveRunLoop;
     
     _phase1 = 0.0f;
     _phase2 = 0.0f;
-    _phaseShift1 = -0.22f;
-    _phaseShift2 = -0.2194f;
+    _phaseShift1 = -0.22f;//因为与_phaseShift2存在差异，累加的差异会导致两个波形周期性趋同
+    //_phaseShift2 = -0.2194f;//设置这两个值的目的是为了让波形向前移动，所以使两条线移动的相位一致也一样，也可解决周期性趋同的问题
+    _phaseShift2 = -0.22f;
     _density = 1.f;
     
     _waveHeight = CGRectGetHeight(self.bounds);
@@ -332,7 +333,25 @@ static NSRunLoop *_voiceWaveRunLoop;
 - (UIBezierPath *)generateBezierPathWithFrequency:(CGFloat)frequency maxAmplitude:(CGFloat)maxAmplitude phase:(CGFloat)phase lineCenter:(CGPoint *)lineCenter
 {
     UIBezierPath *wavelinePath = [UIBezierPath bezierPath];
-    
+    //使音频的波形中间高两边低的几个方法，原作者使用的是抛物线方程
+    /*方法1:
+     a.普通抛物线衰减方程，使图像中间值最高，两侧递减,缺点，两侧波动幅度较大
+        公式:y=(1-(2(x/maxWidth)-1)^2),(0<x<maxWidth)
+     */
+    /*方法2:
+     a.三次回归式抛物线，使中间点波动更明显，需要分段,缺点，分段处衔接不自然，缩小X轴粒度作用有限，可通过多加分段来优化，在X轴中间值附近
+     方程组:{
+        y=(2*x/maxWidth)^3,(0<x<=maxWidth/2)
+        y=(2-2*x/maxWidth)^3,(maxWith/2<x<maxWidth)
+     }
+     */
+    /*方法3:
+     a.余弦波，利用波动的最低和最高，和自然的衔接过程，可以得到较理想的波形
+        公式:y=(cos(M_PI+(x/maxWidth)*2*M_PI)+1)/2,(0<x<maxWidth)
+     */
+    /*方法4:
+     正态分布方程，计算复杂……
+     */
     // (-(2x-1)^2+1)sin (2pi*f*x)
     // (-(2x-1)^2+1)sin (2pi*f*x + 3.0)
     
